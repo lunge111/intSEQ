@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "simuComp <-\nfunction(intres,  nsamp =3, nullgroup = NULL, \n         ntime=100,null=F,lambda1=2*nsamp,lambda2=0.05, normalize=FALSE, coeff =c(2),\n         levels=c(1e-6,1e-5,1e-4,1e-3,0.01,0.05,0.1), fdrlevel=0.1 , small=NULL, medium=NULL,\n         large=NULL, sdd=0.3631473,constadj=FALSE){\n  if( is.null(nullgroup)){\n    lvl=unique(intres$cond)\n    nullgroup = (intres$cond == lvl[1])\n  }\n  ind =c(nullgroup, FALSE)\n  mle =cbind( rowMeans(intres$parameter[, ind]), intres$parameters[,\"disper\"])\n  lfc = intres$restable$logFC\n  l=list()\n  for(i in 1:ntime){\n    l[[i]] =  simuComp1(mle,  nsamp  ,lfc, null, lambda1, lambda2,normalize, coeff, sdd,constadj)\n  }\n  if(!null){\n    if(is.null(small)|is.null(medium)|is.null(large)){\n      small = abs(lfc) <=log(1.5 , base = 2)\n      medium = (abs(lfc) > log(1.5 ,base = 2))&(lfc <1 )\n      large= abs(lfc) > 1\n    }\n    \n    smallp=NULL\n    mediump=NULL\n    largep=NULL\nq = list()\n        for(i in 1:length(l)){\n      ptable=l[[i]]\n      spt=ptable[small,]\n      mpt=ptable[medium,]\n      lpt=ptable[large,]\n      smallp=rbind(smallp,spt)\n      mediump=rbind(mediump,mpt)\n      largep=rbind(largep,lpt)\nq[[i]] =  apply(ptable, 2 , function(x) p.adjust(x, method=\"fdr\"))  \n    }\n    \n    allp = do.call(rbind, list(smallp, mediump, largep))\ndis.rate = rowMeans(sapply(q, function(x, lvl) apply(x, 2, \n                                                     function(y) sum(y<fdrlevel)/length(y) ) ) )\n  names(dis.rate) = c(\"limma.voom\", \"limma.trans\", \"IntSEQ\", \"edgeR.Quasi\")\n  \n  emptmat <- matrix(NA, ncol = length(levels), nrow = 4)\n  colnames(emptmat) = paste(\"treshold =\", levels )\n  row.names(emptmat) = c(\"limma.voom\", \"limma.trans\", \"IntSEQ\", \"edgeR.Quasi\")\n  distable <- distable.small <- distable.med <- distable.large <- emptmat\n    \n  for(k in 1:4){\n    distable[k, ] = pcut(allp[,k],levels = levels)\n    distable.small[k, ] = pcut(smallp[,k],levels = levels)\n    distable.med[k, ] = pcut(mediump[,k],levels = levels)\n    distable.large[k, ] = pcut(largep[,k],levels = levels)\n  }\n  diff = data.frame(small=small, medium = medium, large =large)\n  res = list(null=null, dissmall = distable.small, dismedium= distable.med, \n             dislarge = distable.large, disall = distable, disc = dis.rate,levels=levels, plist = l, fdr = fdrlevel,\n             diff = diff)\n  class(res) <- \"intcomp\"\n  return(res)\n  }else{\n    allp = do.call(rbind, l)\n   fpr = t( apply(allp, 2, function(x) pcut(x,levels = levels)))\n    \n   colnames(fpr) = paste(\"treshold =\", levels )\n   rownames(fpr) =  c(\"limma.voom\", \"limma.trans\", \"IntSEQ\", \"edgeR.Quasi\")\n  res=list(null=null, table = fpr,levels=levels, plist = l)\n  class(res) <- \"intcomp\"\n  return(res)\n    }\n}\n",
+    "created" : 1518420391377.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1847871106",
+    "id" : "213A5453",
+    "lastKnownWriteTime" : 1517826964,
+    "last_content_update" : 1517826964,
+    "path" : "E:/package/intSEQ/R/simuComp.R",
+    "project_path" : "R/simuComp.R",
+    "properties" : {
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

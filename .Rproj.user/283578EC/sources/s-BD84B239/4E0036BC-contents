@@ -1,0 +1,5 @@
+library(intSEQ)
+data("count.data")
+data("condition")
+res  = intSEQ(count.data,condition)
+simu.res <- simuComp(res, ntime = 10,nsamp = 8,null = T)

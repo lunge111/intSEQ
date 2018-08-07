@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "simuComp1 <-\nfunction(mle, nsamp =3,  lfc,null=F,lambda1=2*nsamp,lambda2=0.05, normalize=TRUE, coeff =c(2),\n         sdd = 0.3631473,constadj){\n\n  dat=NBsimu(mle1 = mle,  null=null, nsamp=nsamp,lfc,sdd ,norm=normalize)\n  count.data <- dat$cd\n  cond <- dat$cond\n  pv.int<-intSEQ(count.data, cond, nneighbour = 400, lambda1= lambda1,lambda2 = lambda2,\n                       meanmeth = \"local.mean\", smoothmethod = \"loess\",normalize, coeff, offsets = NULL,\n                 weights = NULL,constadj=constadj)$restable$intPValue\n  pv.quasi <- edgeR.QL.running(count.data,cond,normalize)$table$PValue\n  pv.voom <- limma.voom.running(count.data,cond,normalize)$p.value[, 2]\n  pv.trans <- limma.trans.running(count.data,cond,normalize)$p.value[, 2]\n  res <- data.frame(voom=pv.voom, trans= pv.trans, int=pv.int, quasi=pv.quasi)\n  res\n}\n",
+    "created" : 1518420375309.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1657282522",
+    "id" : "3E9FC4E2",
+    "lastKnownWriteTime" : 1518420558,
+    "last_content_update" : 1518420558543,
+    "path" : "E:/package/intSEQ/R/simuComp1.R",
+    "project_path" : "R/simuComp1.R",
+    "properties" : {
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

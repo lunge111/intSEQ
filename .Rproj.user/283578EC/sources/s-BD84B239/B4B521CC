@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1526753885997.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "B4B521CC",
+    "lastKnownWriteTime" : 1526753862,
+    "last_content_update" : 1526754875969,
+    "path" : "~/Dropbox/intSEQ/R/Hessian.R",
+    "project_path" : "R/Hessian.R",
+    "properties" : {
+        "cursorPosition" : "12,26",
+        "scrollLine" : "8"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

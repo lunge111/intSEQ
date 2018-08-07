@@ -1,0 +1,31 @@
+
+
+exportPattern("^[^\\.]")
+exportClasses("intcomp")
+
+importFrom("graphics", "abline",  "legend",
+       "plot", "points")
+
+importFrom("stats", "dnbinom", "dnorm", 
+           "median", "model.matrix","p.adjust",  "pnbinom", "pnorm", "predict", "quantile",
+           "rnbinom","uniroot","rpois", "IQR", "coef", "lm", "loess", "optimize", "pchisq",
+             "rnorm", "smooth.spline", "var")
+
+ 
+
+importFrom("matrixStats", rowVars, colVars, rowMedians, colMedians)
+
+import(edgeR)
+
+importFrom(fastGHQuad, gaussHermiteData, ghQuad, aghQuad)
+
+importFrom("limma", lmFit, eBayes, voom)
+
+importClassesFrom("edgeR", "DGEList", "DGEGLM")
+
+importClassesFrom("limma", "MArrayLM", "EList")
+
+S3method(intSEQ,default)
+S3method(intSEQ,DGEList)
+S3method(summary,intcomp)
+S3method(show,intres)

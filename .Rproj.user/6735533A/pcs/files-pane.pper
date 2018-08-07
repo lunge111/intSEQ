@@ -1,0 +1,9 @@
+{
+    "path" : "E:/package/intSEQ",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}

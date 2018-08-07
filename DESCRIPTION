@@ -1,0 +1,15 @@
+Package: intSEQ
+Type: Package
+Title: Differential Expression Analysis of RNA-seq Data with Integrated
+        Likelihood Method
+Version: 0.99.0
+Date: 2017-05-7
+Author: Yilun Zhang
+Maintainer: Yilun Zhang <yilzhang@ucdavis.edu>
+Description: Differential expression analysis of RNA-seq data using integrated likelihood method. We fit negative binomial model and use integrated likelihood ratio test.
+License: GPL (>=2)
+Depends: R (>= 2.15.0), edgeR
+Imports: stats, limma, fastGHQuad, matrixStats, graphics
+NeedsCompilation: no
+Packaged: 2018-02-11 12:39:49 UTC; yilunzhang
+RoxygenNote: 6.0.1
