@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1533740359960.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1167945590",
+    "id" : "F3B851CB",
+    "lastKnownWriteTime" : 1533740646,
+    "last_content_update" : 1533740646681,
+    "path" : "E:/package/vignette.Rnw",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "124,81",
+        "scrollLine" : "103"
+    },
+    "relative_order" : 12,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "sweave"
+}

@@ -11,7 +11,7 @@ importFrom("stats", "dnbinom", "dnorm",
            "rnbinom","uniroot","rpois", "IQR", "coef", "lm", "loess", "optimize", "pchisq",
              "rnorm", "smooth.spline", "var")
 
- 
+
 
 importFrom("matrixStats", rowVars, colVars, rowMedians, colMedians)
 
