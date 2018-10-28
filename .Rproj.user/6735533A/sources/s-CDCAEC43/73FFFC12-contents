@@ -1,0 +1,502 @@
+#functions used to calculate the FPR, FDR, etc and generate plots and tables
+#author :Yilun Zhang
+setwd("/export/home/yilzhang/simu/int/newsimu/FPsimu")
+ load("de10p1.RData")
+ load("de10p2.RData")
+ load("de20p1.RData")
+ load("de20p2.RData")
+ load("nullsimu.RData")
+ load("de10.RData")
+
+
+fpr <- function(pv, levels){
+  #given the object returned by FPsimulation, calculate the FPR
+  #@pv: a vector of p values
+  #@levels: significant levels to test against
+  sapply(levels, function(x, p) mean(p<x) , p = pv)
+}
+
+fdr<- function(pv, ee, level){
+  qv= p.adjust(pv, method = "BH")
+  de = qv<level
+  R = sum(de)
+  V = sum(ee&de)
+  ifelse(R==0, 0, V/R)
+}
+
+
+
+findFPR <- function(obj, levels=c(1e-6,1e-5,1e-4,1e-3,0.01,0.05,.1)){
+   #given the object returned by FPsimulation, calculate the FPR
+   #@obj: object returned by FPsimulation
+   #@levels: significant levels to test against
+  glmpv= obj[1,] 
+  quasipv = obj[2,] 
+  voompv = obj[3,] 
+  transpv = obj[4,] 
+  DESEQpv = obj[5,] 
+  glmfpr = rowMeans(sapply(glmpv, fpr, levels = levels))
+  quasifpr = rowMeans(sapply(quasipv, fpr, levels = levels))
+  voomfpr = rowMeans(sapply(voompv, fpr, levels = levels))
+  transfpr = rowMeans(sapply(transpv, fpr, levels = levels))
+  DESEQfpr = rowMeans(sapply(DESEQpv, fpr, levels = levels))
+  m = matrix(c(glmfpr , quasifpr, voomfpr, transfpr, DESEQfpr), ncol=7, byrow = T)
+row.names(m) <- c("glm", "quasi", "voom", "trans","DESeq2")
+colnames(m) <- as.character(levels)
+m
+  }
+
+
+findFDR <- function(obj, levels=0.1){
+  #given the object returned by FPsimulation, calculate the empirical FDR
+  #@obj: object returned by FPsimulation
+  #@levels: FDR levels to test against
+  ee = unlist(obj[6,1])
+  glmfdr = mean(sapply(obj[1,], fdr, level = levels,ee=ee))
+  quasifdr = mean(sapply(obj[2,], fdr, level = levels,ee=ee))
+  voomfdr = mean(sapply(obj[3,], fdr, level = levels,ee=ee))
+  transfdr = mean(sapply(obj[4,], fdr, level = levels,ee=ee))
+  DESEQfdr = mean(sapply(obj[5,], fdr, level = levels,ee=ee))
+  c(glm = glmfdr,quasi = quasifdr, voom  = voomfdr, trans = transfdr, Deseq = DESEQfdr )
+  
+} 
+
+
+PlotFPR<-function(fprs , levels = c(1e-6,1e-5,1e-4,1e-3,0.01,0.05,.1), maintext="Empirical FPR"
+                  , xlabtext ="p-value thresholds", ylabtext= "observed FPR", ylim = c(1e-6,0.1),plotabline = T){
+  #given the fpr matrices returned by findFPR(), produce the FPR plot
+  #@fprs: fpr matrices returned by findFPR()
+  #@levels: FPR levels to test against
+  #@ other arguments passed to plot()
+  #when the sample size is 3 or 5, set ylim to c(1e-7, 0.1) to avoid graphs out of edge
+  #1st to 5th row of fprs are: edgeR.glm, edgeR.quasi, limma voom, limma trans, DESeq2, respectively
+  plot(levels, fprs[1,],type = "b", main = maintext, xlab = xlabtext, ylab = ylabtext, ylim = ylim, col = 1, log='xy')
+  points(levels, fprs[2,],type = "b", col=2)
+  points(levels, fprs[3,],type = "b", col=3)
+  points(levels, fprs[4,],type = "b", col=4)
+  points(levels, fprs[5,],type = "b", col=5)
+  if(plotabline){
+  abline(a=0,b=1,lty=2)
+  }
+  legend("topleft", legend = c("edgeR.glm", "edgeR.quasi", "limma voom", "limma trans", "DESeq2", "expected")
+         , pch=c(1,1,1,1,1,NA), lty=c(1,1,1,1,1,2),col = c(1:5,1))
+  
+}
+
+require(psych)
+
+
+
+
+
+getFRtable <- function(ptable, threshold = 1e-4,  nquant, m, disp){
+  #compute average rejection number in cells
+  #@ptable: pvalue matrix
+  #@threshold: p-value threshold, reject if the pvalue smaller than threshold
+  #@nquant: number of quantiles
+  #@m: true mean
+  #@disp: true dispersion
+  f1=cut(m, breaks=quantile(m,probs=seq(0,1,length=nquant)))
+  f2=cut(disp, breaks=quantile(disp,probs=seq(0,1,length=nquant)))
+  t = table(f1, f2)
+  rowrej <- apply(ptable, 1, function(x) sum(x < threshold))
+  tab <- tapply(rowrej, list(f1, f2), sum)/t
+  rownames(tab)=as.character(round(tapply(m,f1,geometric.mean),1))
+  colnames(tab)=as.character(round(tapply(disp,f2,function(x) sqrt(mean(x))),1))
+  rownames(t)=as.character(round(tapply(m,f1,geometric.mean),1))
+  colnames(t)=as.character(round(tapply(disp,f2,function(x) sqrt(mean(x))),1))
+  list(tab, t)
+}
+
+makeheatplot<-function(plist, threshold=1e-4, nquant=31, m, disp,title){
+  # make heat map, arguments same as getFRtable
+  ptable = sapply(plist, "[")
+  require(lattice)
+  res<-getFRtable(ptable, threshold,  nquant , m, disp)
+  res1 = res[[1]]
+  m=log10(res1+1e-2)
+  pdf(file=paste(title,".pdf",sep = ''),10,10)
+  ht<-levelplot(m,col.regions=topo.colors
+                ,at=seq(-2.5,2,by=0.1),xlab="mean",ylab="dispersion",scales=list(x=list(at=seq(5,50,by=5)
+                                                                                         ,labels=rownames(m)[seq(5,50,by=5)]),
+                                                                                  y=list(at=seq(5,50,by=5)
+                                                                                         ,labels=colnames(m)[seq(5,50,by=5)]))
+                ,colorkey=list(labels=as.character(round(c(0,10^seq(-2.4,2,by=0.1)),2))),
+                main=paste("Heat map of average number of discoveries", title)) 
+  print(ht)
+  dev.off()
+  paste("your file is saved at",getwd())
+  res
+}
+
+
+plotRelativeBiasHeatmap <- function(obj, threshold = 1e-4,  nquant, m, disp,samplesize){
+  #The heatmap of average relative bias in cells
+  #@ptable: pvalue matrix
+  #@threshold: p-value threshold, reject if the pvalue smaller than threshold
+  #@nquant: number of quantiles
+  #@m: true mean
+  #@disp: true dispersion
+  truedisp = unlist(obj[7,1])
+  estimated.disp = sapply(obj[8,], '[')
+  mean.disp = rowMeans(estimated.disp)
+  relative.bias = log(mean.disp/truedisp)
+  f1=cut(m, breaks=quantile(m,probs=seq(0,1,length=nquant)))
+  f2=cut(disp, breaks=quantile(disp,probs=seq(0,1,length=nquant)))
+  t = table(f1, f2)
+  tab <- tapply(relative.bias, list(f1, f2), sum)/t
+  rownames(tab)=as.character(round(tapply(m,f1,geometric.mean),1))
+  colnames(tab)=as.character(round(tapply(disp,f2,function(x) sqrt(mean(x))),1))
+
+    pdf(file=paste("bias",samplesize,".pdf",sep = ''),10,10)
+  ht<-levelplot(tab,col.regions=topo.colors
+                ,at=seq(-1,1,by=0.1),xlab="mean",ylab="dispersion",scales=list(x=list(at=seq(5,50,by=5)
+                                                                                         ,labels=rownames(tab)[seq(5,50,by=5)]),
+                                                                                  y=list(at=seq(5,50,by=5)
+                                                                                         ,labels=colnames(tab)[seq(5,50,by=5)]))
+                ,colorkey=list(labels=as.character(round(seq(-1,1,by=.1),1))),
+                main="Heat map of Relative bias of shrunk disperion estimator") 
+  print(ht)
+  dev.off()
+  paste("your file is saved at",getwd())
+  tab
+}
+
+
+
+
+
+plotheatmaps <- function(obj,  threshold=1e-4, uquant=31, m, disp, samplesize){
+  # make heat map for the object (@obj) returned by FPsimulation, arguments same as getFRtable
+ glm<- makeheatplot(obj[1,], threshold, uquant, m, disp,title = paste("edgeR.glm, ",samplesize,"vs", samplesize))
+  quasi = makeheatplot(obj[2,], threshold, uquant, m, disp,title = paste("edgeR.quasi, ",samplesize,"vs", samplesize))
+  voom = makeheatplot(obj[3,], threshold, uquant, m, disp,title = paste("limma voom, ",samplesize,"vs", samplesize))
+  trans = makeheatplot(obj[4,], threshold, uquant, m, disp,title = paste("limma trans, ",samplesize,"vs", samplesize))
+  DESeq2 = makeheatplot(obj[5,], threshold, uquant, m, disp,title = paste("DESeq2, ",samplesize,"vs", samplesize))
+list(glm,quasi, voom, trans, DESeq2)
+}
+
+pcut <- function(p, levels=c(1e-6,1e-5,1e-4,1e-3,0.01,0.05,0.1)){
+    p[is.na(p)]=1
+    sapply(levels, function(x) sum(p<x))/length(p)
+  }
+
+plotResample <- function(obj, levels = c(1e-6,1e-5,1e-4,1e-3,0.01,0.05,.1), maintext="Observed FPR for Resample Simulations, 3 vs 3"
+                         , xlabtext ="p-value thresholds", ylabtext= "observed FPR", ylim = c(1e-6,0.1), samplesize = 3){
+  #generate FPR plots for resample results
+  #@obj the object returned by resamp()
+  #the rest arguments are same as findFPR()
+  pdf(paste("resamp",samplesize,".pdf", sep=''),10,10)
+  
+  plot(levels, pcut(obj$glm),log="xy", main = maintext, xlab = xlabtext, ylab = ylabtext
+       , ylim = ylim, type = "b" , col=1)
+  points(levels, pcut(obj$quasi),type = "b",col=2)
+  points(levels, pcut(obj$voom),type = "b",col=3)
+  points(levels, pcut(obj$trans),type = "b",col=4)
+  points(levels, pcut(obj$deseq),type = "b",col=5)
+
+  abline(a=0,b=1,lty=2)
+  legend("topleft", legend = c("edgeR.glm", "edgeR.quasi", "limma voom", "limma trans", "DESeq2", "expected")
+         , pch=c(1,1,1,1,1,NA), lty=c(1,1,1,1,1,2),col = c(1:5,1))
+  dev.off()
+  cat(  paste("your file is saved at",getwd()))
+}
+
+setwd("/export/home/yilzhang/simu/int/newsimu/FPsimu/plot")
+plotResample(resamp.null3)
+plotResample(resamp.null5 ,maintext="Observed FPR for Resample Simulations, 5 vs 5", samplesize = 5)
+plotResample(resamp.null10,maintext="Observed FPR for Resample Simulations, 10 vs 10",samplesize = 10)
+plotResample(resamp.null15,maintext="Observed FPR for Resample Simulations, 15 vs 15",samplesize = 15)
+plotResample(resamp.null20,maintext="Observed FPR for Resample Simulations, 20 vs 20",samplesize = 20)
+plotResample(resamp.null30,maintext="Observed FPR for Resample Simulations, 30 vs 30",samplesize = 30)
+#heatmap-----------------------------------------------
+heat3 <- plotheatmaps(nullsimu.3, m = mle1[,1], disp = mle1[,2], samplesize = 3)
+heat5 <- plotheatmaps(nullsimu.5, m = mle1[,1], disp = mle1[,2], samplesize = 5)
+heat10 <- plotheatmaps(nullsimu.10, m = mle1[,1], disp = mle1[,2], samplesize = 10)
+heat15 <- plotheatmaps(nullsimu.15, m = mle1[,1], disp = mle1[,2], samplesize = 15)
+heat20 <- plotheatmaps(nullsimu.20, m = mle1[,1], disp = mle1[,2], samplesize = 20)
+heat30 <- plotheatmaps(nullsimu.30, m = mle1[,1], disp = mle1[,2], samplesize = 30)
+
+bias3<-plotRelativeBiasHeatmap(nullsimu.3, threshold = 1e-4,  nquant=31, m=mle1[,1], disp=mle1[,2],samplesize = 3)
+bias5<-plotRelativeBiasHeatmap(nullsimu.5, threshold = 1e-4,  nquant=31, m=mle1[,1], disp=mle1[,2],samplesize = 5)
+bias10<-plotRelativeBiasHeatmap(nullsimu.10, threshold = 1e-4,  nquant=31, m=mle1[,1], disp=mle1[,2],samplesize = 10)
+bias15<-plotRelativeBiasHeatmap(nullsimu.15, threshold = 1e-4,  nquant=31, m=mle1[,1], disp=mle1[,2],samplesize = 15)
+bias20<-plotRelativeBiasHeatmap(nullsimu.20, threshold = 1e-4,  nquant=31, m=mle1[,1], disp=mle1[,2],samplesize = 20)
+bias30<-plotRelativeBiasHeatmap(nullsimu.30, threshold = 1e-4,  nquant=31, m=mle1[,1], disp=mle1[,2],samplesize = 30)
+
+#Fpr for NB simulation------------------------------
+FPRs3<-findFPR(nullsimu.3)
+FPRs5<-findFPR(nullsimu.5)
+FPRs10<-findFPR(nullsimu.10)
+FPRs15<-findFPR(nullsimu.15)
+FPRs20<-findFPR(nullsimu.20)
+FPRs30<-findFPR(nullsimu.30)
+FPRs100<-findFPR(nullsimu.100)
+FPRs300<-findFPR(nullsimu.300)
+
+
+#load("nullsimu.RData")
+pdf("nullNBsimu3.pdf", 7, 7)
+PlotFPR(FPRs3,ylim=c(1e-7,0.1))
+dev.off()
+
+pdf("nullNBsimu5.pdf", 7, 7)
+PlotFPR(FPRs5,ylim=c(5e-7,0.1))
+dev.off()
+
+
+pdf("nullNBsimu10.pdf", 7, 7)
+PlotFPR(FPRs10,ylim=c(1e-6,0.1))
+dev.off()
+
+
+
+pdf("nullNBsimu15.pdf", 7, 7)
+PlotFPR(FPRs15,ylim=c(1e-6,0.1))
+dev.off()
+
+
+pdf("nullNBsimu20.pdf", 7, 7)
+PlotFPR(FPRs20,ylim=c(1e-6,0.1))
+dev.off()
+
+pdf("nullNBsimu30.pdf", 7, 7)
+PlotFPR(FPRs30,ylim=c(1e-6,0.1))
+dev.off()
+
+PlotFPR(FPRs100,ylim=c(1e-6,0.1))
+
+PlotFPR(FPRs300,ylim=c(1e-6,0.1))
+
+#FPR with true dispersion plugged in
+FPRs3true<-findFPR(nullsimu.3.truedisp)
+FPRs5true<-findFPR(nullsimu.5.truedisp)
+FPRs10true<-findFPR(nullsimu.10.truedisp)
+FPRs15true<-findFPR(nullsimu.15.truedisp)
+FPRs20true<-findFPR(nullsimu.20.truedisp)
+FPRs30true<-findFPR(nullsimu.30.truedisp)
+
+
+#load("nullsimu.RData")
+pdf("nullNBsimu3true.pdf", 7, 7)
+PlotFPR(FPRs3true,ylim=c(1e-7,0.1))
+dev.off()
+
+pdf("nullNBsimu5true.pdf", 7, 7)
+PlotFPR(FPRs5true,ylim=c(5e-7,0.1))
+dev.off()
+
+
+pdf("nullNBsimu10true.pdf", 7, 7)
+PlotFPR(FPRs10true,ylim=c(1e-6,0.1))
+dev.off()
+
+
+
+pdf("nullNBsimu15true.pdf", 7, 7)
+PlotFPR(FPRs15true,ylim=c(1e-6,0.1))
+dev.off()
+
+
+pdf("nullNBsimu20true.pdf", 7, 7)
+PlotFPR(FPRs20true,ylim=c(1e-6,0.1))
+dev.off()
+
+pdf("nullNBsimu30true.pdf", 7, 7)
+PlotFPR(FPRs30true,ylim=c(1e-6,0.1))
+dev.off()
+
+
+
+#FPR with MLE of dispersion plugged in
+FPRs3mle<-findFPR(nullsimu.3.mle)
+FPRs5mle<-findFPR(nullsimu.5.mle)
+FPRs10mle<-findFPR(nullsimu.10.mle)
+FPRs15mle<-findFPR(nullsimu.15.mle)
+FPRs20mle<-findFPR(nullsimu.20.mle)
+FPRs30mle<-findFPR(nullsimu.30.mle)
+
+
+pdf("nullNBsimu3mle.pdf", 7, 7)
+PlotFPR(FPRs3mle,ylim=c(1e-7,1))
+dev.off()
+
+pdf("nullNBsimu5mle.pdf", 7, 7)
+PlotFPR(FPRs5mle,ylim=c(5e-7,0.1))
+dev.off()
+
+
+pdf("nullNBsimu10mle.pdf", 7, 7)
+PlotFPR(FPRs10mle,ylim=c(1e-6,0.1))
+dev.off()
+
+
+
+pdf("nullNBsimu15mle.pdf", 7, 7)
+PlotFPR(FPRs15mle,ylim=c(1e-6,0.1))
+dev.off()
+
+
+pdf("nullNBsimu20mle.pdf", 7, 7)
+PlotFPR(FPRs20mle,ylim=c(1e-6,0.1))
+dev.off()
+
+pdf("nullNBsimu30mle.pdf", 7, 7)
+PlotFPR(FPRs30mle,ylim=c(1e-6,0.1))
+dev.off()
+
+#FDR for NB simulation
+de3.1<-findFDR(desimu.3.1)
+de10.1 <- findFDR(desimu.10.1)
+de20.1 <- findFDR(desimu.20.1)
+
+
+de3.2<-findFDR(desimu.3.2)
+de10.2 <- findFDR(desimu.10.2)
+de20.2 <- findFDR(desimu.20.2)
+
+de5.1<-findFDR(desimu.5.1)
+de15.1 <- findFDR(desimu.15.1)
+de30.1 <- findFDR(desimu.30.1)
+
+
+de5.2<-findFDR(desimu.5.2)
+de15.2 <- findFDR(desimu.15.2)
+de30.2 <- findFDR(desimu.30.2)
+#0.05 level
+de3.1.<-findFDR(desimu.3.1,level = 0.05)
+de10.1. <- findFDR(desimu.10.1,level = 0.05)
+de20.1. <- findFDR(desimu.20.1,level = 0.05)
+
+
+de3.2.<-findFDR(desimu.3.2,level = 0.05)
+de10.2. <- findFDR(desimu.10.2,level = 0.05)
+de20.2.<- findFDR(desimu.20.2,level = 0.05)
+
+de5.1.<-findFDR(desimu.5.1,level = 0.05)
+de15.1. <- findFDR(desimu.15.1,level = 0.05)
+de30.1. <- findFDR(desimu.30.1,level = 0.05)
+
+
+de5.2.<-findFDR(desimu.5.2,level = 0.05)
+de15.2. <- findFDR(desimu.15.2,level = 0.05)
+de30.2. <- findFDR(desimu.30.2,level = 0.05)
+
+
+FDRs <- list(de3.1 = de3.1, de3.2 = de3.2, de5.1 =de5.1, de5.2=de5.2, de10.1 =de10.1
+            , de10.2=de10.2, de15.1 =de15.1,de15.2=de15.2, de20.1 =de20.1, de20.2 =de20.2,
+            de30.1=de30.1, de30.2=de30.2)
+save(FDRs, file="fdr.rda")
+#plot FDR using lattice
+library(lattice)
+fdr10=c(de3.1
+      ,de5.1
+      ,de10.1
+      ,de15.1
+      ,de20.1
+      ,de30.1)
+fdr20=c(de3.2
+        ,de5.2
+        ,de10.2
+        ,de15.2
+        ,de20.2
+        ,de30.2)
+
+fdr10.=c(de3.1.
+        ,de5.1.
+        ,de10.1.
+        ,de15.1.
+        ,de20.1.
+        ,de30.1.)
+fdr20.=c(de3.2.
+        ,de5.2.
+        ,de10.2.
+        ,de15.2.
+        ,de20.2.
+        ,de30.2.)
+
+sp=factor(rep(c("3 vs 3", "5 vs 5", "10 vs 10", "15 vs 15", "20 vs 20", "30 vs 30"),each=5),
+          levels = c( "15 vs 15", "20 vs 20", "30 vs 30","3 vs 3", "5 vs 5", "10 vs 10"),order=T)
+meth=factor(rep(c("glm", "quasi", "voom", "trans", "DESeq2"),times=6))
+
+pdf("FDR_10.pdf",7,7)
+barchart(fdr10~meth|sp,xlab = NULL, ylab = "observed FDR",main="Empirical FDR for 10% DE genes, FDR level = 0.1"
+#         , ylim=c(0,0.32); uncomment this line to make all fdr plots have identical y-limits
+         , stack = TRUE,scales = list(x = list(rot = 45)),panel = function( x,y,...) {
+  panel.abline( h=0.1, lty = "dotted", col = "black")
+  panel.barchart( x,y,...)
+})
+dev.off()
+
+
+pdf("FDR_20.pdf",7,7)
+barchart(fdr20~meth|sp,xlab = NULL, ylab = "observed FDR",main="Empirical FDR for 20% DE genes, FDR level = 0.1"
+        # ,ylim=c(0,0.32); uncomment this line to make all fdr plots have identical y-limits
+         ,  stack = TRUE,scales = list(x = list(rot = 45)),panel = function( x,y,...) {
+  panel.abline( h=0.1, lty = "dotted", col = "black")
+  panel.barchart( x,y,...)
+})
+dev.off()
+
+pdf("FDR_10_0.05.pdf",7,7)
+barchart(fdr10.~meth|sp,xlab = NULL, ylab = "observed FDR",main="Empirical FDR for 10% DE genes, FDR level = 0.05"
+         #         , ylim=c(0,0.27); uncomment this line to make all fdr plots have identical y-limits
+         , stack = TRUE,scales = list(x = list(rot = 45)),panel = function( x,y,...) {
+           panel.abline( h=0.05, lty = "dotted", col = "black")
+           panel.barchart( x,y,...)
+         })
+dev.off()
+
+pdf("FDR_20_0.05.pdf",7,7)
+barchart(fdr20.~meth|sp,xlab = NULL, ylab = "observed FDR",main="Empirical FDR for 20% DE genes, FDR level = 0.05"
+         # ,ylim=c(0,0.27); uncomment this line to make all fdr plots have identical y-limits
+         ,  stack = TRUE,scales = list(x = list(rot = 45)),panel = function( x,y,...) {
+           panel.abline( h=0.05, lty = "dotted", col = "black")
+           panel.barchart( x,y,...)
+         })
+dev.off()
+mle3 = findFPR(altersimu.3.mle)
+
+mle5 = findFPR(altersimu.5.mle)
+
+mle10 = findFPR(altersimu.10.mle)
+
+
+mle15 = findFPR(altersimu.15.mle)
+
+mle20 = findFPR(altersimu.20.mle)
+
+mle30 = findFPR(altersimu.30.mle)
+
+PlotFPR(mle15,ylim=c(1e-3,.5),plotabline = F)
+PlotFPR(mle10,ylim=c(1e-3,.5),plotabline = F)
+
+PlotFPR(mle5,ylim=c(1e-3,.5),plotabline = F)
+
+bias.var <- function(obj){
+  nsim = ncol(obj)
+  ngene = length(unlist(obj[1,1]))
+  diffmatrix <- matrix(0, ncol = nsim, nrow = ngene)
+  for(i in 1:nsim){
+    diffmatrix[,i] = unlist(obj[7,i])-unlist(obj[8,i])
+
+  }
+  diffmatrix
+}
+diffs = bias.var(altersimu.15.mle)
+plot(rowMeans(diffs))
+summary(rowMeans(diffs))
+
+
+
+
+plot(c(1e-6,1e-5,1e-4,1e-3,0.01,0.05,.1), pcut(nullsimu.3.glmnb),type = "b",ylim=c(1e-6,0.5), main = "FPR of glm.nb", col = 1, log='xy', xlab = "p-value thresholds",ylab= "observed FPR")
+
+points(c(1e-6,1e-5,1e-4,1e-3,0.01,0.05,.1), pcut(nullsimu.5.glmnb),type = "b",col=2)
+points(c(1e-6,1e-5,1e-4,1e-3,0.01,0.05,.1), pcut(nullsimu.10.glmnb),type = "b",col=3)
+points(c(1e-6,1e-5,1e-4,1e-3,0.01,0.05,.1), pcut(nullsimu.15.glmnb),type = "b",col=4)
+points(c(1e-6,1e-5,1e-4,1e-3,0.01,0.05,.1), pcut(nullsimu.20.glmnb),type = "b",col=5)
+points(c(1e-6,1e-5,1e-4,1e-3,0.01,0.05,.1), pcut(nullsimu.30.glmnb),type = "b",col=6)
+abline(a=0,b=1,lty=2)
+legend("bottomright", legend = c("3 vs 3", "5 vs 5", "10 vs 10", "15 vs 15", "20 vs 20", "30 vs 30")
+       , pch=c(1,1,1,1,1,1,NA), lty=c(1,1,1,1,1,1,2),col = c(1:6,1))

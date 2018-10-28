@@ -1,0 +1,166 @@
+rm(list = ls())
+library(lattice)
+setwd("/export/home/yilzhang/simu/int/newsimu/montpick")
+load("de1_3.Rdata")
+load("de1_8.Rdata")
+load("de1_10.Rdata")
+load("de1_15_1.Rdata")
+load("de1_20_1.Rdata")
+load("de1_30_1.Rdata")
+
+
+
+
+de3=de3res[[1]]
+de3. =de3res[[2]]
+
+
+
+de8=de8res[[1]]
+de8. =de8res[[2]]
+
+de10=de10res[[1]]
+de10. =de10res[[2]]
+
+de15=de15res1[[1]]
+de15. =de15res1[[2]]
+
+
+de20=de20res1[[1]]
+de20. =de20res1[[2]]
+
+de30=de30res1[[1]]
+de30. =de30res1[[2]]
+
+
+fdr<- function(pl, level,k){
+  ee=pl[,5]
+  pv=pl[,k]
+  qv= p.adjust(pv, method = "BH")
+  de = qv<level
+  R = sum(de)
+  V = sum(ee&de)
+  ifelse(R==0, 0, V/R)
+}
+
+
+findFDR <- function(obj, levels=0.1){
+  #given the object returned by FPsimulation, calculate the empirical FDR
+  #@obj: object returned by FPsimulation
+  #@levels: FDR levels to test against
+  ee = obj[[1]][,5]
+  voomfdr = mean(sapply(obj, fdr, level = levels,k=1))
+  transfdr = mean(sapply(obj, fdr, level = levels,k=2))
+  intfdr = mean(sapply(obj, fdr, level = levels,k=3))
+  quasifdr = mean(sapply(obj, fdr, level = levels,k=4))
+  c(quasi = quasifdr, voom  = voomfdr, trans = transfdr, int = intfdr )
+  
+} 
+
+#FDR for NB simulation
+de3.1<-findFDR(de3)
+de10.1 <- findFDR(de10)
+de20.1 <- findFDR(de20)
+
+
+de3.2<-findFDR(de3.)
+de10.2 <- findFDR(de10.)
+de20.2 <- findFDR(de20.)
+
+de8.1<-findFDR(de8)
+de15.1 <- findFDR(de15)
+de30.1 <- findFDR(de30)
+
+
+de8.2<-findFDR(de8.)
+de15.2 <- findFDR(de15.)
+de30.2 <- findFDR(de30.)
+#0.05 level
+de3.1.<-findFDR(de3,level = 0.05)
+de10.1. <- findFDR(de10,level = 0.05)
+de20.1. <- findFDR(de20,level = 0.05)
+
+
+de3.2.<-findFDR(de3.,level = 0.05)
+de10.2. <- findFDR(de10.,level = 0.05)
+de20.2.<- findFDR(de20.,level = 0.05)
+
+de8.1.<-findFDR(de8,level = 0.05)
+de15.1. <- findFDR(de15,level = 0.05)
+de30.1. <- findFDR(de30,level = 0.05)
+
+
+de8.2.<-findFDR(de8.,level = 0.05)
+de15.2. <- findFDR(de15.,level = 0.05)
+de30.2. <- findFDR(de30.,level = 0.05)
+
+
+
+#plot FDR using lattice
+library(lattice)
+fdr10=c(de3.1
+        ,de8.1
+        ,de10.1
+        ,de15.1
+        ,de20.1
+        ,de30.1)
+fdr20=c(de3.2
+        ,de8.2
+        ,de10.2
+        ,de15.2
+        ,de20.2
+        ,de30.2)
+
+fdr10.=c(de3.1.
+         ,de8.1.
+         ,de10.1.
+         ,de15.1.
+         ,de20.1.
+         ,de30.1.)
+fdr20.=c(de3.2.
+         ,de8.2.
+         ,de10.2.
+         ,de15.2.
+         ,de20.2.
+         ,de30.2.)
+
+sp=factor(rep(c("3 vs 3", "8 vs 8", "10 vs 10", "15 vs 15", "20 vs 20", "30 vs 30"),each=4),
+          levels = c( "15 vs 15", "20 vs 20", "30 vs 30","3 vs 3", "8 vs 8", "10 vs 10"),order=T)
+meth=factor(rep(c( "edgeR.quasi","voom", "trans", "intSEQ"),times=6))
+
+pdf("intfdr10.pdf",7,7)
+barchart(fdr10~meth|sp,xlab = NULL, ylab = "observed FDR",main="Empirical FDR for 12.5% DE genes, FDR level = 0.1"
+         #         , ylim=c(0,0.32); uncomment this line to make all fdr plots have identical y-limits
+         , stack = TRUE,scales = list(x = list(rot = 45)),panel = function( x,y,...) {
+           panel.abline( h=0.1, lty = "dotted", col = "black")
+           panel.barchart( x,y,...)
+         })
+dev.off()
+
+
+pdf("intfdr20.pdf",7,7)
+barchart(fdr20~meth|sp,xlab = NULL, ylab = "observed FDR",main="Empirical FDR for 25% DE genes, FDR level = 0.1"
+         # ,ylim=c(0,0.32); uncomment this line to make all fdr plots have identical y-limits
+         ,  stack = TRUE,scales = list(x = list(rot = 45)),panel = function( x,y,...) {
+           panel.abline( h=0.1, lty = "dotted", col = "black")
+           panel.barchart( x,y,...)
+         })
+dev.off()
+
+pdf("intfdr1005.pdf",7,7)
+barchart(fdr10.~meth|sp,xlab = NULL, ylab = "observed FDR",main="Empirical FDR for 12.5% DE genes, FDR level = 0.05"
+         #         , ylim=c(0,0.27); uncomment this line to make all fdr plots have identical y-limits
+         , stack = TRUE,scales = list(x = list(rot = 45)),panel = function( x,y,...) {
+           panel.abline( h=0.05, lty = "dotted", col = "black")
+           panel.barchart( x,y,...)
+         })
+dev.off()
+
+pdf("intfdr2005.pdf",7,7)
+barchart(fdr20.~meth|sp,xlab = NULL, ylab = "observed FDR",main="Empirical FDR for 25% DE genes, FDR level = 0.05"
+         # ,ylim=c(0,0.27); uncomment this line to make all fdr plots have identical y-limits
+         ,  stack = TRUE,scales = list(x = list(rot = 45)),panel = function( x,y,...) {
+           panel.abline( h=0.05, lty = "dotted", col = "black")
+           panel.barchart( x,y,...)
+         })
+dev.off()

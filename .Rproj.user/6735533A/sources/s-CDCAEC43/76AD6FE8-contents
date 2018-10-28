@@ -1,0 +1,112 @@
+data(count.data)
+data(condition)
+
+
+res=intSEQ(count.data, condition)
+simu.res <- simuComp(res, ntime = 10,nsamp = 300,null = T)
+plotComp(simu.res)
+
+ff<-function(y,mu,theta){
+  log(gamma(y+1/theta))-log(gamma(1/theta))+y*log(mu)-(y+1/theta)*log(1+theta*mu)+y*log(theta)
+}
+ff(1,1,1)
+f=expression(log(gamma(y+1/theta))-log(gamma(1/theta))+y*log(mu)-(y+1/theta)*log(1+theta*mu)+y*log(theta))
+D(D(f,"theta"),"theta")
+g=function(y,mu,theta){
+  -(y * (1/theta^2) - ((y + 1/theta) * (mu * mu/(1 + theta * mu)^2) + 
+                         1/theta^2 * (mu/(1 + theta * mu)) + (1/theta^2 * (mu/(1 + 
+                                                                                 theta * mu)) - 2 * theta/(theta^2)^2 * log(1 + theta * mu)) + 
+                         ((1/theta^2 * (gamma(y + 1/theta) * (1/theta^2 * trigamma(y + 
+                                                                                     1/theta)) + 1/theta^2 * (gamma(y + 1/theta) * digamma(y + 
+                                                                                                                                             1/theta)) * digamma(y + 1/theta)) + 2 * theta/(theta^2)^2 * 
+                             (gamma(y + 1/theta) * digamma(y + 1/theta)))/gamma(y + 
+                                                                                  1/theta) - 1/theta^2 * (gamma(y + 1/theta) * digamma(y + 
+                                                                                                                                         1/theta)) * (1/theta^2 * (gamma(y + 1/theta) * digamma(y + 
+                                                                                                                                                                                                  1/theta)))/gamma(y + 1/theta)^2 - ((1/theta^2 * (gamma(1/theta) * 
+                                                                                                                                                                                                                                                     (1/theta^2 * trigamma(1/theta)) + 1/theta^2 * (gamma(1/theta) * 
+                                                                                                                                                                                                                                                                                                      digamma(1/theta)) * digamma(1/theta)) + 2 * theta/(theta^2)^2 * 
+                                                                                                                                                                                                                                        (gamma(1/theta) * digamma(1/theta)))/gamma(1/theta) - 
+                                                                                                                                                                                                                                       1/theta^2 * (gamma(1/theta) * digamma(1/theta)) * (1/theta^2 * 
+                                                                                                                                                                                                                                                                                            (gamma(1/theta) * digamma(1/theta)))/gamma(1/theta)^2))))
+}
+g(1,1,1)
+
+
+data(count.data)
+data(condition)
+
+
+res=intSEQ(count.data, condition,w1=1,w2=1)
+
+
+
+simu.res3001 <- simuComp(res, ntime = 5,nsamp = 150,null = T,w1=0.7,w2=0.7)
+
+
+simu.res100 <- simuComp(res, ntime = 20,nsamp = 100,null = T,w1=0.9,w2=0.9)
+
+
+
+simu.res35 <- simuComp(res, ntime = 20,nsamp = 35,null = T)
+simu.res40 <- simuComp(res, ntime = 20,nsamp = 40,null = T)
+simu.res45 <- simuComp(res, ntime = 20,nsamp = 45,null = T)
+plotComp(simu.res35)
+plotComp(simu.res40)
+plotComp(simu.res45)
+
+library(intSEQ)
+data("count.data")
+
+time30 <- replicate(10, intSEQ(count.data[,sample(1:129, 60, replace = F)],rep(1:2,each=30),w1=1))
+res=intSEQ(count.data[,1:60],rep(1:2,each=30),w1=1)
+ mean(count.data[12,1:60])
+mean(count.data[95,1:60])
+rowMeans(count.data[index,1:60])
+index=(sts==0.0001)
+
+
+nullfunc <- function(y){
+  
+  joint.likelihood(exp(y),ys=data,  m0, ma, null=T, const)*dnorm(exp(y)
+                                                                 ,mean = m,sd = sdd)*exp(y)
+}
+fullfunc <- function(y){
+  joint.likelihood(exp(y),ys=data, m0,ma, null=F,const)*dnorm(exp(y)
+                                                              ,mean = m,sd = sdd)*exp(y)
+}
+ghrule <- gaussHermiteData(20)
+
+
+muu = w1*m+(1-w1)*thet
+# Hhat = Hessian(dat = data, theta = muu, sigma = sdd)
+Hhat = -n
+sigma = w2*1+(1-w2)*sqrt(-1/Hhat)
+nullLik=aghQuad(g = nullfunc, muHat = log(muu), sigmaHat = sigma, rule = ghrule)
+fullLik=aghQuad(g = fullfunc, muHat = log(muu)
+                , sigmaHat = sigma, rule = ghrule)
+
+fdr<- function(pl, level,k){
+  ee=pl[,5]
+  pv=pl[,k]
+  qv= p.adjust(pv, method = "BH")
+  de = qv<level
+  R = sum(de)
+  V = sum(ee&de)
+  ifelse(R==0, 0, V/R)
+}
+
+
+findFDR <- function(obj, levels=0.1){
+  #given the object returned by FPsimulation, calculate the empirical FDR
+  #@obj: object returned by FPsimulation
+  #@levels: FDR levels to test against
+  ee = obj[[1]][,5]
+  voomfdr = mean(sapply(obj, fdr, level = levels,k=1))
+  transfdr = mean(sapply(obj, fdr, level = levels,k=2))
+  intfdr = mean(sapply(obj, fdr, level = levels,k=3))
+  quasifdr = mean(sapply(obj, fdr, level = levels,k=4))
+  c(quasi = quasifdr, voom  = voomfdr, trans = transfdr, int = intfdr )
+  
+} 
+
+findFDR(de1,0.1)

@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1540714204404.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "73FFFC12",
+    "lastKnownWriteTime" : 1539559497,
+    "last_content_update" : 1539559497,
+    "path" : "D:/desertation/FPpaper/tablePlot/plotFP.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "456,9",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 10,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

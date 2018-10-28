@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1528253547883.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "D44DADB0",
+    "lastKnownWriteTime" : 1533647029,
+    "last_content_update" : 1533647029934,
+    "path" : "D:/intSEQ/R/intSEQ.DGEList.R",
+    "project_path" : "R/intSEQ.DGEList.R",
+    "properties" : {
+        "cursorPosition" : "3,48",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

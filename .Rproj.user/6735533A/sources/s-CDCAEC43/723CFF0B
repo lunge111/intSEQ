@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1533647185715.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "723CFF0B",
+    "lastKnownWriteTime" : 1533739303,
+    "last_content_update" : 1533739303599,
+    "path" : "D:/intSEQ/R/simuComp1.R",
+    "project_path" : "R/simuComp1.R",
+    "properties" : {
+        "cursorPosition" : "2,50",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 10,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1525482302949.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "4057A946",
+    "lastKnownWriteTime" : 1540023278,
+    "last_content_update" : 1540023278,
+    "path" : "D:/intSEQ/R/marginal.LR.R",
+    "project_path" : "R/marginal.LR.R",
+    "properties" : {
+        "cursorPosition" : "60,1",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
